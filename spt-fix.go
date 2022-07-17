@@ -36,7 +36,11 @@ func main() {
 		}
 
 		artist := md["xesam:artist"].Value().([]string)[0]
-		title := md["xesam:title"].Value()
+		title := md["xesam:title"].Value().(string)
+
+		if len(artist) == 0 && len(title) == 0 {
+			continue
+		}
 
 		current_song := fmt.Sprintf("%s - %s", artist, title)
 		fmt.Println(current_song)
