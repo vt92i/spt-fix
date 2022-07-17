@@ -29,7 +29,11 @@ func main() {
 	c := make(chan *dbus.Signal, 10)
 	conn.Signal(c)
 	for v := range c {
-		md := v.Body[1].(map[string]dbus.Variant)["Metadata"].Value().(map[string]dbus.Variant)
+		md, ok := v.Body[1].(map[string]dbus.Variant)["Metadata"].Value().(map[string]dbus.Variant)
+
+		if !ok {
+			continue
+		}
 
 		artist := md["xesam:artist"].Value().([]string)[0]
 		title := md["xesam:title"].Value()
