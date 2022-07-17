@@ -1,50 +1,45 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
+
+	"github.com/godbus/dbus/v5"
 )
 
 func main() {
-	// playerctl --player=spotify metadata --format '{{title}} - {{artist}}' --follow
-	program := "/usr/bin/playerctl"
-	arg1 := "--player=spotify"
-	arg2 := "metadata"
-	arg3 := "--format"
-	arg4 := "'{{title}} - {{artist}}'"
-	arg5 := "--follow"
+	conn, err := dbus.ConnectSessionBus()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to connect to session bus:", err)
+		os.Exit(1)
+	}
+	defer conn.Close()
 
-	cmd := exec.Command(program, arg1, arg2, arg3, arg4, arg5)
-	stdout, _ := cmd.StdoutPipe()
-
-	cmd.Start()
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		current_song := scanner.Text()
-
-		if len(current_song) == 0 {
-			continue
-		}
-
-		if len(current_song) == 5 {
-			for {
-				out, _ := exec.Command(program, arg1, arg2, arg3, arg4).Output()
-				current_song = string(out)
-				if len(current_song) > 6 {
-					current_song = current_song[1 : len(current_song)-2]
-					break
-				}
-			}
-		} else {
-			current_song = current_song[1 : len(current_song)-1]
-		}
-
-		set_window_title(current_song)
-		fmt.Println(current_song)
+	if err = conn.AddMatchSignal(
+		dbus.WithMatchSender("org.mpris.MediaPlayer2.spotify"),
+		dbus.WithMatchObjectPath("/org/mpris/MediaPlayer2"),
+		dbus.WithMatchInterface("org.freedesktop.DBus.Properties"),
+		dbus.WithMatchMember("PropertiesChanged"),
+		dbus.WithMatchOption("arg0", "org.mpris.MediaPlayer2.Player"),
+	); err != nil {
+		panic(err)
 	}
 
-	cmd.Wait()
+	c := make(chan *dbus.Signal, 10)
+	conn.Signal(c)
+	for v := range c {
+		md := v.Body[1].(map[string]dbus.Variant)["Metadata"].Value().(map[string]dbus.Variant)
+
+		artist := md["xesam:artist"].Value().([]string)[0]
+		title := md["xesam:title"].Value()
+
+		current_song := fmt.Sprintf("%s - %s", artist, title)
+		fmt.Println(current_song)
+
+		set_window_title(current_song)
+	}
+
 }
 
 func set_window_title(title string) {
