@@ -42,23 +42,23 @@ func main() {
 			continue
 		}
 
-		current_song := fmt.Sprintf("%s - %s", artist, title)
-		fmt.Println(current_song)
+		window_title := fmt.Sprintf("%s - %s", artist, title)
+		fmt.Println(window_title)
 
-		set_window_title(current_song)
+		set_window_title(window_title)
 	}
 
 }
 
-func set_window_title(title string) {
-	// xdotool search --class "spotify" set_window --name {{title}}
+func set_window_title(window_title string) {
+	// xdotool search --class "spotify" set_window --name {{window_title}}
 	program := "/usr/bin/xdotool"
 	arg1 := "search"
 	arg2 := "--class"
 	arg3 := "spotify"
 	arg4 := "set_window"
 	arg5 := "--name"
-	arg6 := title
+	arg6 := window_title
 
 	exec.Command(program, arg1, arg2, arg3, arg4, arg5, arg6).Run()
 }
